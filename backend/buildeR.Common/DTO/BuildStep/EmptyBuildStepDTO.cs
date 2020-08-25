@@ -1,5 +1,6 @@
 ﻿using buildeR.Common.DTO.BuildPlugin;
 using buildeR.Common.DTO.PluginCommand;
+using System.Collections.Generic;
 
 namespace buildeR.Common.DTO.BuildStep
 {
@@ -12,5 +13,6 @@ namespace buildeR.Common.DTO.BuildStep
 
         public int BuildPluginId { get; set; }
         public int PluginCommandId { get; set; }
+        public IEnumerable<string> Versions { get; set; }
     }
 }
