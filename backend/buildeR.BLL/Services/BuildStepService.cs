@@ -11,17 +11,25 @@ using buildeR.DAL.Context;
 using buildeR.DAL.Entities;
 
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace buildeR.BLL.Services
 {
     public class BuildStepService : BaseCrudService<BuildStep, BuildStepDTO, NewBuildStepDTO>, IBuildStepService
     {
-        public BuildStepService(BuilderContext context, IMapper mapper) : base(context, mapper) { }
+        private readonly HttpClient _httpClient;
+        private readonly IMemoryCache _cache;
+        public BuildStepService(BuilderContext context, IMapper mapper, IMemoryCache cache, IHttpClientFactory factory) : base(context, mapper)
+        {
+            _httpClient = factory.CreateClient();
+            _cache = cache;
+        }
         public async Task<BuildStepDTO> GetBuildStepById(int id)
         {
             var buildStep = await base.GetAsync(id);
@@ -90,9 +98,28 @@ namespace buildeR.BLL.Services
                         BuildPluginId = buildPlugin.Id,
                         BuildPlugin = Mapper.Map<BuildPluginDTO>(buildPlugin),
                         PluginCommand = Mapper.Map<PluginCommandDTO>(pluginCommand),
-                        PluginCommandId = pluginCommand.Id
+                        PluginCommandId = pluginCommand.Id,
+                        Versions = GetDockerImageVersions(buildPlugin.Id, buildPlugin.DockerRegistryName).Result
                     }
                 );
+        }
+
+        public async Task<IEnumerable<string>> GetDockerImageVersions(int id, string image)
+        {
+            IEnumerable<string> versions = null;
+            if (!_cache.TryGetValue(id, out versions))
+            {
+                var response = await _httpClient.GetAsync($"https://registry.hub.docker.com/v1/repositories/{image}/tags");
+                var result = await response.Content.ReadAsStringAsync();
+                var fullTags = JsonConvert.DeserializeObject<IEnumerable<DockerImageVersion>>(result);
+                versions = fullTags.Select(x => x.Name);
+                if (versions != null)
+                {
+                    _cache.Set(id, versions,
+                        new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromMinutes(60)));
+                }
+            }
+            return versions;
         }
 
         public async Task<IEnumerable<BuildStepDTO>> GetBuildStepsByProjectIdAsync(int projectId)

@@ -56,6 +56,7 @@ namespace buildeR
             services.RegisterCustomServices(Configuration);
             services.RegisterRabbitMQ(Configuration);
             services.RegisterHttpCients();
+            services.AddMemoryCache();
 
             services.AddCors(options =>
             {
