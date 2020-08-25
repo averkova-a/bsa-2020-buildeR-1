@@ -219,7 +219,7 @@ namespace buildeR.Processor.Services
             RUN {{ runner }} {{ command }} {{ arg.key }} {{ arg.value }} // if any args
             */
             var template = Template.Parse(
-                 "FROM {{ this.build_plugin.docker_image }}:latest AS {{ this.build_step_name }}\r\n" +
+                 "FROM {{ this.build_plugin.docker_image }}:{{ if !this.build_plugin.version; this.build_plugin.version = 'latest'; end; this.build_plugin.version }} AS {{ this.build_step_name }}\r\n" +
                  "WORKDIR \"/src\"\r\n" +
                  "COPY . .\r\n" +
                  "WORKDIR \"/src/{{ this.work_directory }}\"\r\n" +
